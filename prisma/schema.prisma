@@ -1,0 +1,105 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Customer {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  createdAt     DateTime       @default(now())
+  orders        Order[]
+  conversations Conversation[]
+}
+
+model Product {
+  id            String      @id @default(uuid())
+  sku           String      @unique
+  name          String
+  category      String      // ELECTRONICS, CLOTHING, DIGITAL, FINAL_SALE, PERISHABLE
+  price         Float
+  isReturnable  Boolean     @default(true)
+  restockFeePct Float       @default(0.0)
+  orderItems    OrderItem[]
+}
+
+model Order {
+  id               String         @id @default(uuid())
+  orderNumber      String         @unique
+  customerId       String
+  customer         Customer       @relation(fields: [customerId], references: [id])
+  purchaseDate     DateTime
+  deliveryDate     DateTime?
+  status           String         // DELIVERED, SHIPPED, PARTIALLY_REFUNDED, REFUNDED, DENIED
+  totalAmount      Float
+  returnWindowDays Int            @default(30)
+  items            OrderItem[]
+  refunds          Refund[]
+  conversations    Conversation[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  refunded   Boolean  @default(false)
+}
+
+model Conversation {
+  id          String         @id @default(uuid())
+  customerId  String
+  customer    Customer       @relation(fields: [customerId], references: [id])
+  orderId     String?
+  order       Order?         @relation(fields: [orderId], references: [id])
+  status      String         @default("ACTIVE") // ACTIVE, RESOLVED, ESCALATED
+  messages    Message[]
+  logs        ExecutionLog[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String       // CUSTOMER, AGENT, SYSTEM
+  content        String
+  toolCalls      String?      // JSON string of tools called in turn
+  createdAt      DateTime     @default(now())
+}
+
+model Refund {
+  id             String   @id @default(uuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id])
+  amount         Float
+  status         String   // APPROVED, DENIED, PENDING_RETURN, ESCALATED
+  reason         String
+  policyCode     String   // e.g. EXPIRED_WINDOW, FINAL_SALE, VALID_REFUND, FRAUD_THRESHOLD
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+}
+
+model ExecutionLog {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  stepNumber     Int
+  llmReasoning   String?
+  toolName       String
+  toolInput      String
+  toolOutput     String
+  policyOutcome  String       // PASS, FAIL, ESCALATE
+  denialReason   String?
+  createdAt      DateTime     @default(now())
+}

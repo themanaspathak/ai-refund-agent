@@ -2,7 +2,7 @@
 
 An autonomous, full-stack AI Customer Support Agent for e-commerce refund processing built for the **Jobform Automator Technical Hiring Assignment**.
 
-Built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **SQLite**, **Prisma ORM**, and the **Gemini API** with **native Function/Tool Calling** and **Web Speech API Voice Pipeline**.
+Built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma Postgres / PostgreSQL**, **Prisma ORM**, and the **Gemini API** with **native Function/Tool Calling** and **Web Speech API Voice Pipeline**.
 
 ---
 
@@ -10,7 +10,7 @@ Built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **SQLite*
 
 | Requirement | Implementation Status | Location |
 | :--- | :--- | :--- |
-| **1. 15 CRM Customer Profiles & Strict Policy Document** | ✅ **100% Complete** | Pre-seeded in SQLite via `prisma/seed.ts` (`alice@example.com` to `nina@example.com`, `ORD-1001` to `ORD-1015`). |
+| **1. 15 CRM Customer Profiles & Strict Policy Document** | ✅ **100% Complete** | Pre-seeded in PostgreSQL via `prisma/seed.ts` (`alice@example.com` to `nina@example.com`, `ORD-1001` to `ORD-1015`). |
 | **2. Agent Backend (Raw Function Calling & Tool Loop)** | ✅ **100% Complete** | [`runner.ts`](file:///c:/Users/Manas%20Pathak/Documents/ai-refund-agent/src/lib/agent/runner.ts) & [`tools.ts`](file:///c:/Users/Manas%20Pathak/Documents/ai-refund-agent/src/lib/agent/tools.ts) using Gemini Function Declarations & Zod schemas. |
 | **3. Bonus Voice Pipeline** | ✅ **100% Complete (Bonus)** | Web Speech API integration in [`VoiceControls.tsx`](file:///c:/Users/Manas%20Pathak/Documents/ai-refund-agent/src/components/customer/VoiceControls.tsx) for microphone STT input & TTS audio output. |
 | **4. Customer Chat UI** | ✅ **100% Complete** | `/customer` page with real-time tool badges, active order preview card, and preset scenario launcher. |
@@ -22,7 +22,7 @@ Built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **SQLite*
 ## 🚀 Key Highlights & Architectural Principles
 
 1. **LLM Tool Orchestration**: The Gemini model processes natural language customer intent, extracts parameters, and selects registered tools (`get_order_details`, `check_refund_policy`, `process_refund`, `escalate_to_human`, `issue_return_label`).
-2. **Deterministic Backend Policy Control**: The LLM is **never** granted independent authority to issue payouts. Every refund request is passed to the backend `RefundPolicyEngine`, which enforces rules deterministically in TypeScript before mutating SQLite database records.
+2. **Deterministic Backend Policy Control**: The LLM is **never** granted independent authority to issue payouts. Every refund request is passed to the backend `RefundPolicyEngine`, which enforces rules deterministically in TypeScript before mutating PostgreSQL database records.
 3. **Zod Input Validation**: Tool calls are strictly validated at runtime using Zod schemas.
 4. **Full Telemetry & Execution Logs**: Step-by-step audit logs capture agent reasoning, raw JSON tool parameters, tool execution outputs, and deterministic policy outcomes (`PASS`, `BLOCKED`, or `ESCALATED`).
 5. **Human Supervisor Escalations**: Suspected fraud (e.g. >3 refunds in 30 days) or customer disputes automatically route to a supervisor escalation queue in the Admin Dashboard.
@@ -79,7 +79,7 @@ Use this walkthrough structure for your 10-minute Loom evaluation video:
 
 ---
 
-## ⚡ Getting Started
+## ⚡ Getting Started & Vercel Deployment
 
 ### 1. Setup Environment
 Clone repository and set up environment variables:
@@ -87,23 +87,26 @@ Clone repository and set up environment variables:
 cp .env.example .env
 ```
 
-To enable live Gemini API calls, set your Gemini API key in `.env`:
+Set your PostgreSQL connection string (Prisma Postgres / Vercel Postgres / Neon / Supabase) and optional Gemini API key in `.env`:
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ai_refund_agent?schema=public"
 GEMINI_API_KEY="your-gemini-api-key-here"
 ```
 *(Note: If `GEMINI_API_KEY` is omitted or empty, the application runs a zero-config deterministic agent orchestrator out-of-the-box!)*
 
 ### 2. Initialize Database & Seed 15 CRM Profiles
-Run Prisma migrations and seed sample test scenarios:
+Push database schema and seed test scenarios:
 ```bash
 npx prisma db push
 npx tsx prisma/seed.ts
 ```
 
-### 3. Run Development Server
-```bash
-npm run dev
-```
+### 3. Deploying to Vercel
+1. Import repository into Vercel.
+2. In Project Settings -> Environment Variables, add `DATABASE_URL` (your Prisma Postgres / PostgreSQL connection string) and `GEMINI_API_KEY`.
+3. Run schema push against remote database:
+   ```bash
+   npx prisma db push
+   ```
+4. Seed database either via CLI (`npx tsx prisma/seed.ts`) or trigger the serverless API endpoint: `POST https://your-vercel-deployment.vercel.app/api/seed`.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.

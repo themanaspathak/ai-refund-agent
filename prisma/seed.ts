@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedDatabase() {
   console.log("Seeding database with 15 CRM customer profiles & strict policy scenarios...");
 
   // 1. Clean existing records
@@ -282,11 +282,19 @@ async function main() {
   console.log("Database successfully seeded with 15 CRM customer profiles and orders ORD-1001 through ORD-1015!");
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (
+  typeof process !== "undefined" &&
+  process.argv &&
+  process.argv[1] &&
+  process.argv[1].replace(/\\/g, "/").includes("prisma/seed")
+) {
+  seedDatabase()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
+
